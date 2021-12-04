@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
@@ -77,7 +78,8 @@ public class GetLocation extends AppCompatActivity {
                                             return;
                                             //e.printStackTrace();
                                         }
-                                        textview.setText(deviceName + " last located at:\n"+humanReadableAddress[0]+"\nLatitude : "+location[0]+"Longitude : "+location[1]);
+                                        String date = new java.util.Date(Long.parseLong(otherDetails[0]+"000")).toString();
+                                        textview.setText(deviceName + " last located at:\n"+humanReadableAddress[0]+"\nLatitude : "+location[0]+"\nLongitude : "+location[1]+"\nUpdater Name : "+otherDetails[1]+"\nUpdater Email : "+otherDetails[2]+"\nUpdater Number : "+otherDetails[3]+"\nTime : "+date);
                                         browser.setWebViewClient(new WebViewClient());
                                         browser.loadUrl("https://maps.google.com/maps?q="+location[0]+",%20"+location[1]);
                                     }
@@ -134,7 +136,8 @@ public class GetLocation extends AppCompatActivity {
                                     return;
                                     //e.printStackTrace();
                                 }
-                                textview.setText(deviceName + " last located at:\n"+humanReadableAddress[0]+"\nLatitude : "+location[0]+"\nLongitude : "+location[1]);
+                                String date = new java.util.Date(Long.parseLong(otherDetails[0]+"000")).toString();
+                                textview.setText(deviceName + " last located at:\n"+humanReadableAddress[0]+"\nLatitude : "+location[0]+"\nLongitude : "+location[1]+"\nUpdater Name : "+otherDetails[1]+"\nUpdater Email : "+otherDetails[2]+"\nUpdater Number : "+otherDetails[3]+"\nTime : "+date);
                                 browser.setWebViewClient(new WebViewClient());
                                 browser.loadUrl("https://maps.google.com/maps?q="+location[0]+",%20"+location[1]);
                             }
@@ -165,6 +168,7 @@ public class GetLocation extends AppCompatActivity {
         List<DeviceDetails> allRegistered = appDb.deviceDao().getAll();
         listView = findViewById(R.id.listView);
         textview = findViewById(R.id.textView4);
+        textview.setMovementMethod(new ScrollingMovementMethod());
         textview.setText("Pick a registered device");
         browser = (WebView) findViewById(R.id.webView);
         browser.setVerticalScrollBarEnabled(true);

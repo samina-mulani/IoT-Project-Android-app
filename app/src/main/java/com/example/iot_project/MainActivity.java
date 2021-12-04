@@ -31,6 +31,7 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.CancellationTokenSource;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -70,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences sharedPreferences = getSharedPreferences("metadata", Context.MODE_PRIVATE);
         checkPermission(Manifest.permission.ACCESS_FINE_LOCATION, LCN_PERMISSION_CODE);
         Boolean isSet = sharedPreferences.getBoolean("isSet", false);
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         if(!isSet)
         {
             setUserDetails();
@@ -138,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void logGlobalDevices(){
         SharedPreferences sharedPref = getSharedPreferences("globalList",Context.MODE_PRIVATE);
-        int len = sharedPref.getInt("len",0);
+        int len = sharedPref.getInt("length",0);
         for(int i=0;i<len;i++)
         {
             Log.d("device"+Integer.toString(i),sharedPref.getString("device"+Integer.toString(i),"N/A"));
@@ -171,12 +173,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public Boolean isGloballyRegistered(String macAddress){
+
         SharedPreferences sharedPref = getSharedPreferences("globalList",Context.MODE_PRIVATE);
-        int len = sharedPref.getInt("len",0);
+        int len = sharedPref.getInt("length",0);
         String deviceAddress;
         for(int i=0;i<len;i++)
         {
             deviceAddress = sharedPref.getString("device"+Integer.toString(i),"N/A");
+            Log.d("GLOBAL_DEVICES",deviceAddress);
             if(deviceAddress.equals(macAddress))
                 return true;
         }
@@ -229,9 +233,10 @@ public class MainActivity extends AppCompatActivity {
                         //Body of POST request
                         Map<String, String> params = new HashMap<String, String>();
                         params.put("deviceAddress",macAddress);
-                        params.put(" deviceName","N/A");
+                        params.put("deviceName","N/A");
+                        params.put("timestamp",ts);
                         params.put("updaterName",name);
-                        params.put(" updaterNumber",phone);
+                        params.put("updaterNumber",phone);
                         params.put("updaterEmail",email);
                         params.put("latitude",Double.toString(location.getLatitude()));
                         params.put("longitude",Double.toString(location.getLongitude()));
@@ -341,12 +346,48 @@ public class MainActivity extends AppCompatActivity {
                 // Discovery has found a device. Get the BluetoothDevice
                 // object and its info from the Intent.
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                String deviceHardwareAddress = device.getAddress(); // MAC address
+                final String deviceHardwareAddress = device.getAddress(); // MAC address
                 Log.d("DEVICE FOUND!!",deviceHardwareAddress);
-                if(isLocallyRegistered(deviceHardwareAddress)||isGloballyRegistered(deviceHardwareAddress))
-                {
-                    update(deviceHardwareAddress);
-                }
+                RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+                String url ="https://iot-project-314.herokuapp.com/getListRegistered";
+                JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url,null,
+                        new Response.Listener<JSONObject>() {
+                            @Override
+                            public void onResponse(JSONObject response) {
+                                try {
+                                    JSONArray myList = (JSONArray) response.get("list");
+                                    SharedPreferences sharedPref = getSharedPreferences("globalList",Context.MODE_PRIVATE);
+                                    SharedPreferences.Editor editor = sharedPref.edit();
+                                    editor.putInt("length",myList.length());
+                                    for(int i=0;i<myList.length();i++)
+                                    {
+                                        Log.d("WEB_REQ",myList.getString(i));
+                                        editor.putString("device"+Integer.toString(i),myList.getString(i));
+                                    }
+                                    editor.commit();
+                                    logGlobalDevices();
+                                    if(isGloballyRegistered(deviceHardwareAddress)||isLocallyRegistered(deviceHardwareAddress))
+                                    {
+                                        update(deviceHardwareAddress);
+                                    }
+                                } catch (JSONException e) {
+                                    Toast.makeText(getApplicationContext(),"Server Error!",Toast.LENGTH_SHORT).show();
+                                }
+
+                            }
+                        }, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {Log.e("WEB", error.toString());
+                        if(isGloballyRegistered(deviceHardwareAddress)||isLocallyRegistered(deviceHardwareAddress))
+                        {
+                            update(deviceHardwareAddress);
+                        }
+                        Toast.makeText(getApplicationContext(),"Could not connect to server!",Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+                // Add the request to the RequestQueue.
+                queue.add(jsonObjectRequest);
             } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)){
                 Log.d("MY_STATUS","Scan finished");
                 Toast.makeText(getApplicationContext(),"Bluetooth scan finished!",Toast.LENGTH_SHORT).show();
@@ -376,7 +417,7 @@ public class MainActivity extends AppCompatActivity {
             }
             if (bluetoothAdapter.isDiscovering()) bluetoothAdapter.cancelDiscovery();
             Log.d("MY_STATUS", "Starting discovery");
-            Toast.makeText(getApplicationContext(), "Please wait for scan to finish!", Toast.LENGTH_LONG);
+            Toast.makeText(getApplicationContext(), "Please wait for scan to finish!", Toast.LENGTH_SHORT).show();
 
             bluetoothAdapter.startDiscovery();
         }

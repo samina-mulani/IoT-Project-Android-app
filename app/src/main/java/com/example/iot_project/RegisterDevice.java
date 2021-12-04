@@ -163,6 +163,7 @@ public class RegisterDevice extends AppCompatActivity {
     public void storeDeviceDetails(String[] deviceDetails) {
         final String deviceName = deviceDetails[0];
         final String deviceAddress = deviceDetails[1];
+        Log.d("POST REQ",deviceName);
 
         if (ActivityCompat.checkSelfPermission(
                 this,
@@ -207,9 +208,9 @@ public class RegisterDevice extends AppCompatActivity {
                         //Body of POST request
                         Map<String, String> params = new HashMap<String, String>();
                         params.put("deviceAddress",deviceAddress);
-                        params.put(" deviceName",deviceName);
+                        params.put("deviceName",deviceName);
                         params.put("ownerName",name);
-                        params.put(" ownerNumber",phone);
+                        params.put("ownerNumber",phone);
                         params.put("ownerEmail",email);
                         params.put("timestamp",ts);
                         params.put("latitude",Double.toString(location.getLatitude()));
