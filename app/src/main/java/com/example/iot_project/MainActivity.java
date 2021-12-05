@@ -127,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Add the request to the RequestQueue.
-        queue.add(jsonObjectRequest);
+        //queue.add(jsonObjectRequest);
 
         //REPEATED SCAN SET
 //        mbtscanner = new MbtScanner(this);
